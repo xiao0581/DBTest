@@ -1,40 +1,51 @@
 ﻿
 using DBTest;
 
-//// SQL Server
-//SqlServerTest.InsertSingleRecord();
-//SqlServerTest.InsertBatchRecords();
-//SqlServerTest.QuerySingleRecord();
-//SqlServerTest.QueryComplexJoin();
-//SqlServerTest.ConcurrentReadWrite();
+Console.WriteLine("Starting Database Tests...");
 
-//// MongoDB
-//await MongoDBTest.InsertSingleRecord();
-//await MongoDBTest.InsertBatchRecords();
-//await MongoDBTest.QuerySingleRecord();
-//await MongoDBTest.QueryComplexJoin();
-//await MongoDBTest.ConcurrentReadWrite();
+// SQL Server Tests
+Console.WriteLine("\n=== SQL Server Tests ===");
+await SqlServerTest.InsertSingleRecordAsync();
+await SqlServerTest.InsertBatchRecordsAsync();
+await SqlServerTest.QuerySingleRecordAsync();
+await SqlServerTest.ClearDatabaseAsync();
+await SqlServerTest.ConcurrentInsertAsync();
+await SqlServerTest.ConcurrentQueryAsync();
 
-//// Redis
-//RedisTest.InsertSingleRecord();
-//RedisTest.InsertBatchRecords();
-//RedisTest.QuerySingleRecord();
-//RedisTest.QueryComplexJoin();
-//RedisTest.ConcurrentReadWrite();
+// MongoDB Tests
+Console.WriteLine("\n=== MongoDB Tests ===");
+await MongoDBTest.InsertSingleRecord();
+await MongoDBTest.InsertBatchRecords();
+await MongoDBTest.QuerySingleRecord();
+await MongoDBTest.ClearCollection();
+await MongoDBTest.ConcurrentInsert();
+await MongoDBTest.ConcurrentQuery();
 
-//// Cassandra
-//CassandraTest.InsertSingleRecord();
-//CassandraTest.InsertBatchRecords();
-//CassandraTest.QuerySingleRecord();
-//CassandraTest.QueryComplexJoin();
-//CassandraTest.ConcurrentReadWrite();
+// Redis Tests
+Console.WriteLine("\n=== Redis Tests ===");
+await RedisTest.InsertSingleRecord();
+await RedisTest.InsertBatchRecords();
+await RedisTest.QuerySingleRecord();
+await RedisTest.ClearUsersAsync();
+await RedisTest.ConcurrentInsert();
+await RedisTest.ConcurrentQuery();
 
-//// Neo4j
-//await Neo4jTest.InsertSingleRecord();
-//await Neo4jTest.InsertBatchRecords();
-//await Neo4jTest.QuerySingleRecord();
-//await Neo4jTest.QueryComplexJoin();
-//await Neo4jTest.ConcurrentReadWrite();
+// PostgreSQL Tests
+Console.WriteLine("\n=== PostgreSQL Tests ===");
+await PostgreSQLTest.InsertSingleRecordAsync();
+await PostgreSQLTest.InsertBatchRecordsAsync();
+await PostgreSQLTest.QuerySingleRecordAsync();
+await PostgreSQLTest.ClearUsersTableAsync();
+await PostgreSQLTest.ConcurrentInsertAsync();
+await PostgreSQLTest.ConcurrentQueryAsync();
 
-DBsetup db = new DBsetup();
-db.trySql();
+// Neo4j Tests
+Console.WriteLine("\n=== Neo4j Tests ===");
+await Neo4jTest.InsertSingleRecord();
+await Neo4jTest.InsertBatchRecords();
+await Neo4jTest.QuerySingleRecord();
+await Neo4jTest.ClearUsersAsync();
+await Neo4jTest.ConcurrentInsert();
+await Neo4jTest.ConcurrentQuery();
+
+Console.WriteLine("\nAll tests completed.");

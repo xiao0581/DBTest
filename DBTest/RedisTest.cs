@@ -1,110 +1,167 @@
-﻿using StackExchange.Redis;
+﻿using Neo4j.Driver;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
+using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace DBTest
 {
     public class RedisTest
     {
-        private static ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
-
-        public static void InsertSingleRecord()
+        private static IDriver GetDriver()
         {
-            var db = redis.GetDatabase();
-
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            db.HashSet("User:1", new HashEntry[]
-            {
-            new HashEntry("UserId", 1),
-            new HashEntry("Name", "Alice"),
-            new HashEntry("Email", "alice@example.com")
-            });
-            stopwatch.Stop();
-
-            Console.WriteLine($"Redis: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
+            return GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.Basic("neo4j", "12345678"));
         }
 
-        public static void InsertBatchRecords()
+        private static List<User> LoadUsersFromJson(string filePath)
         {
-            var db = redis.GetDatabase();
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
-            db.HashSet("User:2", new HashEntry[]
-            {
-            new HashEntry("UserId", 2),
-            new HashEntry("Name", "Bob"),
-            new HashEntry("Email", "bob@example.com")
-            });
-
-            db.HashSet("User:3", new HashEntry[]
-            {
-            new HashEntry("UserId", 3),
-            new HashEntry("Name", "Charlie"),
-            new HashEntry("Email", "charlie@example.com")
-            });
-
-            stopwatch.Stop();
-            Console.WriteLine($"Redis: Batch Insert - {stopwatch.ElapsedMilliseconds} ms");
+            var jsonData = File.ReadAllText(filePath);
+            return JsonSerializer.Deserialize<List<User>>(jsonData);
         }
 
-        public static void QuerySingleRecord()
+        public static async Task InsertSingleRecord()
         {
-            var db = redis.GetDatabase();
+            using var driver = GetDriver();
+            using var session = driver.AsyncSession();
 
             Stopwatch stopwatch = Stopwatch.StartNew();
-            var user = db.HashGetAll("User:1");
+            await session.RunAsync(
+                "CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})",
+                new { UserId = 1000, Name = "Alice", Email = "alice@example.com" }
+            );
             stopwatch.Stop();
+            Console.WriteLine($"Neo4j: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
+        }
 
-            Console.WriteLine($"Redis: Single Query - {stopwatch.ElapsedMilliseconds} ms");
-            foreach (var field in user)
+        public static async Task InsertBatchRecords()
+        {
+            using var driver = GetDriver();
+            using var session = driver.AsyncSession();
+            var users = LoadUsersFromJson("users.json");
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            foreach (var user in users)
             {
-                Console.WriteLine($"{field.Name}: {field.Value}");
+                await session.RunAsync(
+                    "CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})",
+                    new { user.UserId, user.Name, user.Email }
+                );
+            }
+            stopwatch.Stop();
+            Console.WriteLine($"Neo4j: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+        }
+
+        public static async Task QuerySingleRecord()
+        {
+            using var driver = GetDriver();
+            using var session = driver.AsyncSession();
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            var result = await session.RunAsync(
+                "MATCH (u:User {UserId: $UserId}) RETURN u.Name AS Name, u.Email AS Email",
+                new { UserId = 1000 } // 假设查询 UserId 为 1
+            );
+
+            stopwatch.Stop();
+            if (await result.FetchAsync())
+            {
+                var name = result.Current["Name"].As<string>();
+                var email = result.Current["Email"].As<string>();
+                Console.WriteLine($"Neo4j: Single Query - {stopwatch.ElapsedMilliseconds} ms");
+                Console.WriteLine($"Query Result: UserId=1, Name={name}, Email={email}");
+            }
+            else
+            {
+                Console.WriteLine("No results found for UserId=1.");
             }
         }
 
-        public static void QueryComplexJoin()
-        {
-            Console.WriteLine("Redis: Complex Query (Join) not supported");
-        }
+        public static async Task ClearUsersAsync()
+{
+    using var driver = GetDriver();
+    using var session = driver.AsyncSession();
 
-        public static void ConcurrentReadWrite()
+    Stopwatch stopwatch = Stopwatch.StartNew();
+    try
+    {
+        await session.RunAsync("MATCH (u:User) DETACH DELETE u");
+        stopwatch.Stop();
+        Console.WriteLine($"Neo4j: Cleared all User nodes - {stopwatch.ElapsedMilliseconds} ms");
+    }
+    finally
+    {
+        await session.CloseAsync();
+        await driver.CloseAsync();
+    }
+}
+        public static async Task ConcurrentInsert()
         {
-            var db = redis.GetDatabase();
+            var driver = GetDriver();
+            var users = LoadUsersFromJson("users.json");
             var tasks = new List<Task>();
-            var random = new Random();
 
             Stopwatch stopwatch = Stopwatch.StartNew();
+            foreach (var user in users)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    using var session = driver.AsyncSession();
+                    await session.RunAsync(
+                        "CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})",
+                        new { user.UserId, user.Name, user.Email }
+                    );
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+            stopwatch.Stop();
+            Console.WriteLine($"Neo4j: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+
+            await driver.CloseAsync();
+        }
+
+
+        public static async Task ConcurrentQuery()
+        {
+            var driver = GetDriver();
+            var random = new Random();
+            var tasks = new List<Task>();
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             for (int i = 0; i < 100; i++)
             {
-                var userId = i + 10;
-                var userKey = $"User:{userId}";
-
-                // Concurrent Write
-                tasks.Add(Task.Run(() =>
+                tasks.Add(Task.Run(async () =>
                 {
-                    db.HashSet(userKey, new HashEntry[]
+                    using var session = driver.AsyncSession();
+                    var userId = random.Next(1, 101);
+                    var result = await session.RunAsync(
+                        "MATCH (u:User {UserId: $UserId}) RETURN u.Name AS Name, u.Email AS Email",
+                        new { UserId = userId }
+                    );
+
+                    // 手动检查结果
+                    if (await result.FetchAsync())
                     {
-                    new HashEntry("UserId", userId),
-                    new HashEntry("Name", $"User{userId}"),
-                    new HashEntry("Email", $"user{userId}@example.com")
-                    });
-                }));
-
-                // Concurrent Read
-                tasks.Add(Task.Run(() =>
-                {
-                    db.HashGetAll(userKey);
+                        var name = result.Current["Name"].As<string>();
+                        var email = result.Current["Email"].As<string>();
+                        Console.WriteLine($"Query Result: UserId={userId}, Name={name}, Email={email}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Query for UserId={userId} returned no results.");
+                    }
                 }));
             }
 
-            Task.WaitAll(tasks.ToArray());
-            stopwatch.Stop();
 
-            Console.WriteLine($"Redis: Concurrent Read/Write Test Completed in {stopwatch.ElapsedMilliseconds} ms");
+            await Task.WhenAll(tasks);
+            stopwatch.Stop();
+            Console.WriteLine($"Neo4j: Concurrent Query Completed in {stopwatch.ElapsedMilliseconds} ms");
+
+            await driver.CloseAsync();
         }
     }
 }

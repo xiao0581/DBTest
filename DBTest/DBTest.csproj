@@ -8,12 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="App.Metrics.Formatters.Json" Version="4.3.0" />
     <PackageReference Include="CassandraCSharpDriver" Version="3.22.0" />
     <PackageReference Include="Dapper" Version="2.1.35" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="MongoDB.Bson" Version="3.0.0" />
     <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
     <PackageReference Include="Neo4j.Driver" Version="5.26.1" />
+    <PackageReference Include="Npgsql" Version="9.0.1" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
   </ItemGroup>
 
