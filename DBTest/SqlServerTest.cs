@@ -15,14 +15,14 @@ namespace DBTest
     {
         private static string connectionString = "Data Source=XIAO-PC\\XIAODATA;Integrated Security=True;Database=DBtest;Connect Timeout=30;Encrypt=True;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
 
-        // 加载 JSON 数据
+       
         public static async Task<List<User>> LoadUsersFromJsonAsync(string filePath)
         {
             var jsonData = await File.ReadAllTextAsync(filePath);
             return JsonConvert.DeserializeObject<List<User>>(jsonData);
         }
 
-        // 单条记录插入
+    
         public static async Task InsertSingleRecordAsync()
         {
             using var connection = new SqlConnection(connectionString);
@@ -38,7 +38,7 @@ namespace DBTest
             Console.WriteLine($"SQL Server: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        // 批量插入
+     
         public static async Task InsertBatchRecordsAsync()
         {
             var users = await LoadUsersFromJsonAsync("users.json");
@@ -55,7 +55,7 @@ namespace DBTest
             Console.WriteLine($"SQL Server: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        // 单条查询
+     
         public static async Task QuerySingleRecordAsync()
         {
             using var connection = new SqlConnection(connectionString);
@@ -77,13 +77,20 @@ namespace DBTest
             using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
 
-            // 使用 TRUNCATE 清空表
+            
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+           
             var truncateQuery = "TRUNCATE TABLE Users;";
             await connection.ExecuteAsync(truncateQuery);
 
-            Console.WriteLine("Database cleared successfully.");
+          
+            stopwatch.Stop();
+
+            
+            Console.WriteLine($"Sql database cleared successfully in {stopwatch.ElapsedMilliseconds} ms.");
         }
-        // 并发插入
+        
         public static async Task ConcurrentInsertAsync()
         {
             var users = await LoadUsersFromJsonAsync("users.json");
@@ -109,7 +116,7 @@ namespace DBTest
             Console.WriteLine($"SQL Server: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        // 并发查询
+       
         public static async Task ConcurrentQueryAsync()
         {
             var random = new Random();

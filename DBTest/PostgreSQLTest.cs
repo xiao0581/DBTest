@@ -15,14 +15,14 @@ namespace DBTest
     {
         private static string connectionString = "Host=localhost;Port=5432;Username=postgres;Password=12345;Database=Test";
 
-        // 加载 JSON 数据
+       
         private static async Task<List<User>> LoadUsersFromJsonAsync(string filePath)
         {
             var jsonData = await File.ReadAllTextAsync(filePath);
             return JsonSerializer.Deserialize<List<User>>(jsonData);
         }
 
-        // 单条记录插入
+      
         public static async Task InsertSingleRecordAsync()
         {
             using var connection = new NpgsqlConnection(connectionString);
@@ -38,10 +38,10 @@ namespace DBTest
             Console.WriteLine($"PostgreSQL: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        // 批量插入
+  
         public static async Task InsertBatchRecordsAsync()
         {
-            var users = await LoadUsersFromJsonAsync("users.json"); // 异步加载 JSON 数据
+            var users = await LoadUsersFromJsonAsync("users.json"); 
 
             using var connection = new NpgsqlConnection(connectionString);
             await connection.OpenAsync();
@@ -55,7 +55,7 @@ namespace DBTest
             Console.WriteLine($"PostgreSQL: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        // 单条查询
+    
         public static async Task QuerySingleRecordAsync()
         {
             using var connection = new NpgsqlConnection(connectionString);
@@ -71,20 +71,27 @@ namespace DBTest
             Console.WriteLine($"PostgreSQL: Single Query - {stopwatch.ElapsedMilliseconds} ms");
         }
         public static async Task ClearUsersTableAsync()
-{
-    using var connection = new NpgsqlConnection(connectionString);
-    await connection.OpenAsync();
+        {
+            using var connection = new NpgsqlConnection(connectionString);
+            await connection.OpenAsync();
 
-    // DELETE 表中所有记录
-    var deleteQuery = "DELETE FROM Users;";
-    await connection.ExecuteAsync(deleteQuery);
+          
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
-    Console.WriteLine("PostgreSQL: Users table cleared successfully.");
-}
-        // 并发插入
+            
+            var deleteQuery = "DELETE FROM Users;";
+            await connection.ExecuteAsync(deleteQuery);
+
+           
+            stopwatch.Stop();
+
+          
+            Console.WriteLine($"PostgreSQL: Users table cleared successfully in {stopwatch.ElapsedMilliseconds} ms.");
+        }
+
         public static async Task ConcurrentInsertAsync()
         {
-            var users = await LoadUsersFromJsonAsync("users.json"); // 异步加载 JSON 数据
+            var users = await LoadUsersFromJsonAsync("users.json"); 
             var tasks = new List<Task>();
 
             Stopwatch stopwatch = Stopwatch.StartNew();
@@ -107,7 +114,7 @@ namespace DBTest
             Console.WriteLine($"PostgreSQL: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
         }
 
-        // 并发查询
+      
         public static async Task ConcurrentQueryAsync()
         {
             var random = new Random();
@@ -115,7 +122,7 @@ namespace DBTest
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            // 假设随机查询 UserId 的范围为 1 到 100
+           
             for (int i = 0; i < 100; i++)
             {
                 tasks.Add(Task.Run(async () =>
@@ -123,13 +130,13 @@ namespace DBTest
                     using var connection = new NpgsqlConnection(connectionString);
                     await connection.OpenAsync();
 
-                    var userId = random.Next(1, 101); // 随机生成 UserId
+                    var userId = random.Next(1, 101); 
                     var query = "SELECT * FROM Users WHERE UserId = @UserId";
                     var parameters = new { UserId = userId };
 
                     var result = await connection.QuerySingleOrDefaultAsync(query, parameters);
 
-                    // 可选调试输出
+                 
                     if (result != null)
                     {
                         Console.WriteLine($"Query Result: UserId={result.UserId}, Name={result.Name}, Email={result.Email}");

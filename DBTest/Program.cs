@@ -1,6 +1,10 @@
 ﻿
 using DBTest;
-
+await SqlServerTest.ClearDatabaseAsync();
+await MongoDBTest.ClearCollection();
+await RedisTest.ClearAllDataAsync();
+await PostgreSQLTest.ClearUsersTableAsync();
+await Neo4jTest.ClearUsersAsync();
 Console.WriteLine("Starting Database Tests...");
 
 // SQL Server Tests
@@ -11,6 +15,15 @@ await SqlServerTest.QuerySingleRecordAsync();
 await SqlServerTest.ClearDatabaseAsync();
 await SqlServerTest.ConcurrentInsertAsync();
 await SqlServerTest.ConcurrentQueryAsync();
+
+// PostgreSQL Tests
+Console.WriteLine("\n=== PostgreSQL Tests ===");
+await PostgreSQLTest.InsertSingleRecordAsync();
+await PostgreSQLTest.InsertBatchRecordsAsync();
+await PostgreSQLTest.QuerySingleRecordAsync();
+await PostgreSQLTest.ClearUsersTableAsync();
+await PostgreSQLTest.ConcurrentInsertAsync();
+await PostgreSQLTest.ConcurrentQueryAsync();
 
 // MongoDB Tests
 Console.WriteLine("\n=== MongoDB Tests ===");
@@ -23,21 +36,12 @@ await MongoDBTest.ConcurrentQuery();
 
 // Redis Tests
 Console.WriteLine("\n=== Redis Tests ===");
-await RedisTest.InsertSingleRecord();
-await RedisTest.InsertBatchRecords();
-await RedisTest.QuerySingleRecord();
-await RedisTest.ClearUsersAsync();
-await RedisTest.ConcurrentInsert();
-await RedisTest.ConcurrentQuery();
-
-// PostgreSQL Tests
-Console.WriteLine("\n=== PostgreSQL Tests ===");
-await PostgreSQLTest.InsertSingleRecordAsync();
-await PostgreSQLTest.InsertBatchRecordsAsync();
-await PostgreSQLTest.QuerySingleRecordAsync();
-await PostgreSQLTest.ClearUsersTableAsync();
-await PostgreSQLTest.ConcurrentInsertAsync();
-await PostgreSQLTest.ConcurrentQueryAsync();
+await RedisTest.InsertSingleRecordAsync();
+await RedisTest.InsertBatchRecordsAsync();
+await RedisTest.QuerySingleRecordAsync();
+await RedisTest.ClearAllDataAsync();
+await RedisTest.ConcurrentInsertAsync();
+await RedisTest.ConcurrentQueryAsync();
 
 // Neo4j Tests
 Console.WriteLine("\n=== Neo4j Tests ===");

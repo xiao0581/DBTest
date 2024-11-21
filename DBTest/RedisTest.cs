@@ -1,4 +1,5 @@
 ﻿using Neo4j.Driver;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,9 +11,10 @@ namespace DBTest
 {
     public class RedisTest
     {
-        private static IDriver GetDriver()
+        private static ConnectionMultiplexer GetConnection()
         {
-            return GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.Basic("neo4j", "12345678"));
+            
+            return ConnectionMultiplexer.Connect("localhost:6379");
         }
 
         private static List<User> LoadUsersFromJson(string filePath)
@@ -21,84 +23,88 @@ namespace DBTest
             return JsonSerializer.Deserialize<List<User>>(jsonData);
         }
 
-        public static async Task InsertSingleRecord()
+       
+        public static async Task InsertSingleRecordAsync()
         {
-            using var driver = GetDriver();
-            using var session = driver.AsyncSession();
+            var connection = GetConnection();
+            var db = connection.GetDatabase(); 
 
             Stopwatch stopwatch = Stopwatch.StartNew();
-            await session.RunAsync(
-                "CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})",
-                new { UserId = 1000, Name = "Alice", Email = "alice@example.com" }
-            );
+            await db.StringSetAsync("User:1000", JsonSerializer.Serialize(new User { UserId = 1000, Name = "Alice", Email = "alice@example.com" }));
             stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
+
+            Console.WriteLine($"Redis: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
+
+            connection.Close();
         }
 
-        public static async Task InsertBatchRecords()
+       
+        public static async Task InsertBatchRecordsAsync()
         {
-            using var driver = GetDriver();
-            using var session = driver.AsyncSession();
+            var connection = GetConnection();
+            var db = connection.GetDatabase();
             var users = LoadUsersFromJson("users.json");
 
             Stopwatch stopwatch = Stopwatch.StartNew();
             foreach (var user in users)
             {
-                await session.RunAsync(
-                    "CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})",
-                    new { user.UserId, user.Name, user.Email }
-                );
+                await db.StringSetAsync($"User:{user.UserId}", JsonSerializer.Serialize(user));
             }
             stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Redis: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+
+            connection.Close();
         }
 
-        public static async Task QuerySingleRecord()
+        
+        public static async Task QuerySingleRecordAsync()
         {
-            using var driver = GetDriver();
-            using var session = driver.AsyncSession();
+            var connection = GetConnection();
+            var db = connection.GetDatabase();
 
             Stopwatch stopwatch = Stopwatch.StartNew();
-            var result = await session.RunAsync(
-                "MATCH (u:User {UserId: $UserId}) RETURN u.Name AS Name, u.Email AS Email",
-                new { UserId = 1000 } // 假设查询 UserId 为 1
-            );
-
+            var value = await db.StringGetAsync("User:1000");
             stopwatch.Stop();
-            if (await result.FetchAsync())
+
+            if (value.HasValue)
             {
-                var name = result.Current["Name"].As<string>();
-                var email = result.Current["Email"].As<string>();
-                Console.WriteLine($"Neo4j: Single Query - {stopwatch.ElapsedMilliseconds} ms");
-                Console.WriteLine($"Query Result: UserId=1, Name={name}, Email={email}");
+                var user = JsonSerializer.Deserialize<User>(value);
+                Console.WriteLine($"Redis: Single Query - {stopwatch.ElapsedMilliseconds} ms");
+                Console.WriteLine($"Query Result: UserId=1000, Name={user.Name}, Email={user.Email}");
             }
             else
             {
-                Console.WriteLine("No results found for UserId=1.");
+                Console.WriteLine("No results found for UserId=1000.");
+            }
+
+            connection.Close();
+        }
+
+      
+        public static async Task ClearAllDataAsync()
+        {
+            var connection = GetConnection();
+            var db = connection.GetDatabase();
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            try
+            {
+              
+                await db.ExecuteAsync("FLUSHALL");
+                stopwatch.Stop();
+                Console.WriteLine($"Redis: cleared successfully in {stopwatch.ElapsedMilliseconds} ms");
+            }
+            finally
+            {
+                connection.Close();
             }
         }
 
-        public static async Task ClearUsersAsync()
-{
-    using var driver = GetDriver();
-    using var session = driver.AsyncSession();
-
-    Stopwatch stopwatch = Stopwatch.StartNew();
-    try
-    {
-        await session.RunAsync("MATCH (u:User) DETACH DELETE u");
-        stopwatch.Stop();
-        Console.WriteLine($"Neo4j: Cleared all User nodes - {stopwatch.ElapsedMilliseconds} ms");
-    }
-    finally
-    {
-        await session.CloseAsync();
-        await driver.CloseAsync();
-    }
-}
-        public static async Task ConcurrentInsert()
+    
+        public static async Task ConcurrentInsertAsync()
         {
-            var driver = GetDriver();
+            var connection = GetConnection();
+            var db = connection.GetDatabase();
             var users = LoadUsersFromJson("users.json");
             var tasks = new List<Task>();
 
@@ -107,25 +113,22 @@ namespace DBTest
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    using var session = driver.AsyncSession();
-                    await session.RunAsync(
-                        "CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})",
-                        new { user.UserId, user.Name, user.Email }
-                    );
+                    await db.StringSetAsync($"User:{user.UserId}", JsonSerializer.Serialize(user));
                 }));
             }
 
             await Task.WhenAll(tasks);
             stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Redis: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
 
-            await driver.CloseAsync();
+            connection.Close();
         }
 
-
-        public static async Task ConcurrentQuery()
+      
+        public static async Task ConcurrentQueryAsync()
         {
-            var driver = GetDriver();
+            var connection = GetConnection();
+            var db = connection.GetDatabase();
             var random = new Random();
             var tasks = new List<Task>();
 
@@ -135,19 +138,13 @@ namespace DBTest
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    using var session = driver.AsyncSession();
                     var userId = random.Next(1, 101);
-                    var result = await session.RunAsync(
-                        "MATCH (u:User {UserId: $UserId}) RETURN u.Name AS Name, u.Email AS Email",
-                        new { UserId = userId }
-                    );
+                    var value = await db.StringGetAsync($"User:{userId}");
 
-                    // 手动检查结果
-                    if (await result.FetchAsync())
+                    if (value.HasValue)
                     {
-                        var name = result.Current["Name"].As<string>();
-                        var email = result.Current["Email"].As<string>();
-                        Console.WriteLine($"Query Result: UserId={userId}, Name={name}, Email={email}");
+                        var user = JsonSerializer.Deserialize<User>(value);
+                        Console.WriteLine($"Query Result: UserId={userId}, Name={user.Name}, Email={user.Email}");
                     }
                     else
                     {
@@ -156,12 +153,11 @@ namespace DBTest
                 }));
             }
 
-
             await Task.WhenAll(tasks);
             stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Concurrent Query Completed in {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Redis: Concurrent Query Completed in {stopwatch.ElapsedMilliseconds} ms");
 
-            await driver.CloseAsync();
+            connection.Close();
         }
     }
 }

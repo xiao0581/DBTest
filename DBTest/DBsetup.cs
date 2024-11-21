@@ -36,12 +36,12 @@ namespace DBTest
         {
             try
             {
-                // 连接到 MongoDB
+               
                 var client = new MongoClient("mongodb://localhost:27017");
                 var database = client.GetDatabase("TestDB");
                 var collection = database.GetCollection<BsonDocument>("Users");
 
-                // 准备插入的数据
+            
                 var document = new BsonDocument
         {
             { "UserId", 1 },
@@ -49,10 +49,9 @@ namespace DBTest
             { "Email", "alice@example.com" }
         };
 
-                // 插入数据并计时
+               
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                collection.InsertOne(document); // 使用同步插入方法
-                stopwatch.Stop();
+                collection.InsertOne(document); 
 
                 Console.WriteLine($"MongoDB: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
             }
@@ -64,22 +63,22 @@ namespace DBTest
 
         public void tryRedis()
         {
-            // 连接Redis服务器
+           
             ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost:6379");
 
-            // 获取默认的数据库实例
+         
             IDatabase db = redis.GetDatabase();
 
-            // 插入数据
+       
             db.StringSet("name", "Alice");
 
-            // 读取数据
+   
             string name = db.StringGet("name");
 
-            // 输出数据
+    
             Console.WriteLine($"Name: {name}");
 
-            // 关闭连接
+        
             redis.Close();
         }
         public void tryPostgre()
@@ -105,7 +104,7 @@ namespace DBTest
             try
             {
                 using var driver = GraphDatabase.Driver(uri, AuthTokens.Basic(username, password));
-                using var session = driver.AsyncSession(o => o.WithDefaultAccessMode(AccessMode.Write)); // 使用新方法创建会话
+                using var session = driver.AsyncSession(o => o.WithDefaultAccessMode(AccessMode.Write)); 
 
                 var cypherQuery = @"
         CREATE (u:User {UserId: $UserId, Name: $Name, Email: $Email})
@@ -118,7 +117,7 @@ namespace DBTest
                 };
 
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                session.RunAsync(cypherQuery, parameters).Wait(); // 使用异步执行并等待完成
+                session.RunAsync(cypherQuery, parameters).Wait(); 
                 stopwatch.Stop();
 
                 Console.WriteLine($"Neo4j: Single Insert - {stopwatch.ElapsedMilliseconds} ms");

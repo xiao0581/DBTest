@@ -19,7 +19,7 @@ namespace DBTest
             return database.GetCollection<BsonDocument>("Users");
         }
 
-        // 加载 JSON 数据
+      
         private static List<BsonDocument> LoadUsersFromJson(string filePath)
         {
             var jsonData = File.ReadAllText(filePath);
@@ -34,7 +34,7 @@ namespace DBTest
                 }).ToList();
         }
 
-        // 单条记录插入
+        
         public static async Task InsertSingleRecord()
         {
             var collection = GetCollection();
@@ -54,7 +54,7 @@ namespace DBTest
 
 
 
-        // 批量插入
+        
         public static async Task InsertBatchRecords()
         {
             var collection = GetCollection();
@@ -68,11 +68,11 @@ namespace DBTest
         }
 
 
-        // 单条查询
+       
         public static async Task QuerySingleRecord()
         {
             var collection = GetCollection();
-            var filter = Builders<BsonDocument>.Filter.Eq("UserId", 1000); // 假设查询 UserId 为 1 的用户
+            var filter = Builders<BsonDocument>.Filter.Eq("UserId", 1000); 
 
             Stopwatch stopwatch = Stopwatch.StartNew();
             var result = await collection.Find(filter).FirstOrDefaultAsync();
@@ -80,7 +80,7 @@ namespace DBTest
 
             Console.WriteLine($"MongoDB: Single Query - {stopwatch.ElapsedMilliseconds} ms");
 
-            // 输出查询结果
+           
             if (result != null)
             {
                 Console.WriteLine($"Query Result: UserId={result["UserId"]}, Name={result["Name"]}, Email={result["Email"]}");
@@ -92,11 +92,11 @@ namespace DBTest
         }
 
 
-        // 并发插入
+       
         public static async Task ConcurrentInsert()
         {
             var collection = GetCollection();
-            var documents = LoadUsersFromJson("users.json"); // 从 JSON 文件加载数据
+            var documents = LoadUsersFromJson("users.json"); 
             var tasks = new List<Task>();
 
             Stopwatch stopwatch = Stopwatch.StartNew();
@@ -119,13 +119,19 @@ namespace DBTest
         {
             var collection = GetCollection();
 
-            // 删除所有文档
+           
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+           
             await collection.DeleteManyAsync(Builders<BsonDocument>.Filter.Empty);
 
-            Console.WriteLine("MongoDB: Collection cleared successfully.");
+          
+            stopwatch.Stop();
+
+            
+            Console.WriteLine($"MongoDB: Collection cleared successfully in {stopwatch.ElapsedMilliseconds} ms.");
         }
 
-        // 并发查询
         public static async Task ConcurrentQuery()
         {
             var collection = GetCollection();
@@ -134,17 +140,17 @@ namespace DBTest
 
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            // 假设随机查询 UserId 的范围为 1 到 100
+           
             for (int i = 0; i < 100; i++)
             {
                 tasks.Add(Task.Run(async () =>
                 {
-                    var userId = random.Next(1, 101); // 随机生成 UserId
+                    var userId = random.Next(1, 101); 
                     var filter = Builders<BsonDocument>.Filter.Eq("UserId", userId);
 
                     var result = await collection.Find(filter).FirstOrDefaultAsync();
 
-                    // 可选调试输出
+                   
                     if (result != null)
                     {
                         Console.WriteLine($"Query Result: UserId={result["UserId"]}, Name={result["Name"]}, Email={result["Email"]}");
