@@ -81,18 +81,81 @@ namespace DBTest
             Console.WriteLine($"MongoDB: Single Query - {stopwatch.ElapsedMilliseconds} ms");
 
            
-            if (result != null)
+         
+        }
+        public static async Task ComplexQueryMongoAsync()
+        {
+           
+            var client = new MongoClient("mongodb://localhost:27017");
+            var database = client.GetDatabase("TestDB");
+
+         
+            var customers = database.GetCollection<BsonDocument>("customers");
+
+        
+            var pipeline = new[]
             {
-                Console.WriteLine($"Query Result: UserId={result["UserId"]}, Name={result["Name"]}, Email={result["Email"]}");
+        
+        new BsonDocument("$lookup", new BsonDocument
+        {
+            { "from", "orders" },                
+            { "localField", "_id" },              
+            { "foreignField", "customerId" },     
+            { "as", "orders" }               
+        }),
+
+      
+        new BsonDocument("$unwind", "$orders"),
+
+  
+        new BsonDocument("$lookup", new BsonDocument
+        {
+            { "from", "orderDetails" },          
+            { "localField", "orders._id" },      
+            { "foreignField", "orderId" },      
+            { "as", "orderDetails" }            
+        }),
+
+       
+        new BsonDocument("$unwind", "$orderDetails"),
+
+        
+        new BsonDocument("$group", new BsonDocument
+        {
+            { "_id", "$name" },                   
+            { "totalAmount", new BsonDocument("$sum", new BsonDocument("$multiply", new BsonArray
+                {
+                    "$orderDetails.quantity",     
+                    "$orderDetails.unitPrice"    
+                }))
             }
-            else
+        }),
+
+       
+        new BsonDocument("$sort", new BsonDocument("totalAmount", -1))
+    };
+
+           
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            
+            var results = await customers.Aggregate<BsonDocument>(pipeline).ToListAsync();
+
+       
+            stopwatch.Stop();
+
+          
+            Console.WriteLine($"MongoDB Query executed in {stopwatch.ElapsedMilliseconds} ms");
+
+       
+            foreach (var result in results)
             {
-                Console.WriteLine("No results found for UserId=1");
+                Console.WriteLine($"CustomerName: {result["_id"]}, TotalAmount: {result["totalAmount"]}");
             }
         }
 
 
-       
+
         public static async Task ConcurrentInsert()
         {
             var collection = GetCollection();
@@ -150,15 +213,6 @@ namespace DBTest
 
                     var result = await collection.Find(filter).FirstOrDefaultAsync();
 
-                   
-                    if (result != null)
-                    {
-                        Console.WriteLine($"Query Result: UserId={result["UserId"]}, Name={result["Name"]}, Email={result["Email"]}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Query for UserId={userId} returned no results.");
-                    }
                 }));
             }
 

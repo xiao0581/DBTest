@@ -70,7 +70,7 @@ namespace DBTest
             {
                 var user = JsonSerializer.Deserialize<User>(value);
                 Console.WriteLine($"Redis: Single Query - {stopwatch.ElapsedMilliseconds} ms");
-                Console.WriteLine($"Query Result: UserId=1000, Name={user.Name}, Email={user.Email}");
+               
             }
             else
             {
@@ -140,16 +140,7 @@ namespace DBTest
                 {
                     var userId = random.Next(1, 101);
                     var value = await db.StringGetAsync($"User:{userId}");
-
-                    if (value.HasValue)
-                    {
-                        var user = JsonSerializer.Deserialize<User>(value);
-                        Console.WriteLine($"Query Result: UserId={userId}, Name={user.Name}, Email={user.Email}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Query for UserId={userId} returned no results.");
-                    }
+               
                 }));
             }
 

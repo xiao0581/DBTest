@@ -137,14 +137,7 @@ namespace DBTest
                     var result = await connection.QuerySingleOrDefaultAsync(query, parameters);
 
                  
-                    if (result != null)
-                    {
-                        Console.WriteLine($"Query Result: UserId={result.UserId}, Name={result.Name}, Email={result.Email}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Query for UserId={userId} returned no results.");
-                    }
+                 
                 }));
             }
 

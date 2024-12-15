@@ -13,159 +13,146 @@ namespace DBTest
 {
     public class Neo4jTest
     {
-        private static IDriver GetDriver()
-        {
-            return GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.Basic("neo4j", "12345678"));
-        }
+        //private static IDriver GetDriver()
+        //{
+        //    return GraphDatabase.Driver("bolt://localhost:7687", AuthTokens.Basic("neo4j", "12345678"));
+        //}
 
       
-        private static List<User> LoadUsersFromJson(string filePath)
-        {
-            var jsonData = File.ReadAllText(filePath);
-            return JsonConvert.DeserializeObject<List<User>>(jsonData);
-        }
+        //private static List<User> LoadUsersFromJson(string filePath)
+        //{
+        //    var jsonData = File.ReadAllText(filePath);
+        //    return JsonConvert.DeserializeObject<List<User>>(jsonData);
+        //}
 
        
-        public static async Task InsertSingleRecord()
-        {
-            var driver = GetDriver();
-            var session = driver.AsyncSession();
+        //public static async Task InsertSingleRecord()
+        //{
+        //    var driver = GetDriver();
+        //    var session = driver.AsyncSession();
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            await session.RunAsync("CREATE (u:User {UserId: 1000, Name: 'Alice', Email: 'alice@example.com'})");
-            stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
+        //    Stopwatch stopwatch = Stopwatch.StartNew();
+        //    await session.RunAsync("CREATE (u:User {UserId: 1000, Name: 'Alice', Email: 'alice@example.com'})");
+        //    stopwatch.Stop();
+        //    Console.WriteLine($"Neo4j: Single Insert - {stopwatch.ElapsedMilliseconds} ms");
 
-            await session.CloseAsync();
-            await driver.CloseAsync();
-        }
+        //    await session.CloseAsync();
+        //    await driver.CloseAsync();
+        //}
 
      
-        public static async Task InsertBatchRecords()
-        {
-            var driver = GetDriver();
-            var session = driver.AsyncSession();
-            var users = LoadUsersFromJson("users.json"); 
+        //public static async Task InsertBatchRecords()
+        //{
+        //    var driver = GetDriver();
+        //    var session = driver.AsyncSession();
+        //    var users = LoadUsersFromJson("users.json"); 
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            foreach (var user in users)
-            {
-                await session.RunAsync($"CREATE (u:User {{UserId: {user.UserId}, Name: '{user.Name}', Email: '{user.Email}'}})");
-            }
-            stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+        //    Stopwatch stopwatch = Stopwatch.StartNew();
+        //    foreach (var user in users)
+        //    {
+        //        await session.RunAsync($"CREATE (u:User {{UserId: {user.UserId}, Name: '{user.Name}', Email: '{user.Email}'}})");
+        //    }
+        //    stopwatch.Stop();
+        //    Console.WriteLine($"Neo4j: Batch Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
 
-            await session.CloseAsync();
-            await driver.CloseAsync();
-        }
+        //    await session.CloseAsync();
+        //    await driver.CloseAsync();
+        //}
 
        
-        public static async Task QuerySingleRecord()
-        {
-            var driver = GetDriver();
-            var session = driver.AsyncSession();
+        //public static async Task QuerySingleRecord()
+        //{
+        //    var driver = GetDriver();
+        //    var session = driver.AsyncSession();
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            var result = await session.RunAsync("MATCH (u:User {UserId: 1000}) RETURN u.Name AS Name, u.Email AS Email");
-            var record = await result.SingleAsync();
-            stopwatch.Stop();
+        //    Stopwatch stopwatch = Stopwatch.StartNew();
+        //    var result = await session.RunAsync("MATCH (u:User {UserId: 1000}) RETURN u.Name AS Name, u.Email AS Email");
+        //    var record = await result.SingleAsync();
+        //    stopwatch.Stop();
 
-            Console.WriteLine($"Neo4j: Single Query - {stopwatch.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Neo4j: Query Result - {record["Name"]}, {record["Email"]}");
+        //    Console.WriteLine($"Neo4j: Single Query - {stopwatch.ElapsedMilliseconds} ms");
+            
 
-            await session.CloseAsync();
-            await driver.CloseAsync();
-        }
-        public static async Task ClearUsersAsync()
-        {
-            using var driver = GetDriver();
-            using var session = driver.AsyncSession();
+        //    await session.CloseAsync();
+        //    await driver.CloseAsync();
+        //}
+        //public static async Task ClearUsersAsync()
+        //{
+        //    using var driver = GetDriver();
+        //    using var session = driver.AsyncSession();
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            try
-            {
-                await session.RunAsync("MATCH (u:User) DETACH DELETE u");
-                stopwatch.Stop();
-                Console.WriteLine($"Neo4j: Cleared all User nodes in {stopwatch.ElapsedMilliseconds} ms");
-            }
-            finally
-            {
-                await session.CloseAsync();
-                await driver.CloseAsync();
-            }
-        }
+        //    Stopwatch stopwatch = Stopwatch.StartNew();
+        //    try
+        //    {
+        //        await session.RunAsync("MATCH (u:User) DETACH DELETE u");
+        //        stopwatch.Stop();
+        //        Console.WriteLine($"Neo4j: Cleared all User nodes in {stopwatch.ElapsedMilliseconds} ms");
+        //    }
+        //    finally
+        //    {
+        //        await session.CloseAsync();
+        //        await driver.CloseAsync();
+        //    }
+        //}
         
-        public static async Task ConcurrentInsert()
-        {
-            var driver = GetDriver();
-            var users = LoadUsersFromJson("users.json"); 
-            var tasks = new List<Task>();
+        //public static async Task ConcurrentInsert()
+        //{
+        //    var driver = GetDriver();
+        //    var users = LoadUsersFromJson("users.json"); 
+        //    var tasks = new List<Task>();
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            foreach (var user in users)
-            {
-                tasks.Add(Task.Run(async () =>
-                {
-                    var session = driver.AsyncSession();
-                    await session.RunAsync($"CREATE (u:User {{UserId: {user.UserId}, Name: '{user.Name}', Email: '{user.Email}'}})");
-                    await session.CloseAsync();
-                }));
-            }
+        //    Stopwatch stopwatch = Stopwatch.StartNew();
+        //    foreach (var user in users)
+        //    {
+        //        tasks.Add(Task.Run(async () =>
+        //        {
+        //            var session = driver.AsyncSession();
+        //            await session.RunAsync($"CREATE (u:User {{UserId: {user.UserId}, Name: '{user.Name}', Email: '{user.Email}'}})");
+        //            await session.CloseAsync();
+        //        }));
+        //    }
 
-            await Task.WhenAll(tasks);
-            stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
+        //    await Task.WhenAll(tasks);
+        //    stopwatch.Stop();
+        //    Console.WriteLine($"Neo4j: Concurrent Insert ({users.Count} records) - {stopwatch.ElapsedMilliseconds} ms");
 
-            await driver.CloseAsync();
-        }
+        //    await driver.CloseAsync();
+        //}
 
   
-        public static async Task ConcurrentQuery()
-        {
-            var driver = GetDriver();
-            var random = new Random();
-            var tasks = new List<Task>();
+        //public static async Task ConcurrentQuery()
+        //{
+        //    var driver = GetDriver();
+        //    var random = new Random();
+        //    var tasks = new List<Task>();
 
-            Stopwatch stopwatch = Stopwatch.StartNew();
+        //    Stopwatch stopwatch = Stopwatch.StartNew();
 
            
-            for (int i = 0; i < 100; i++)
-            {
-                tasks.Add(Task.Run(async () =>
-                {
-                    var session = driver.AsyncSession();
-                    try
-                    {
-                        var userId = random.Next(1, 101); 
-                        var result = await session.RunAsync($"MATCH (u:User {{UserId: {userId}}}) RETURN u.Name AS Name, u.Email AS Email");
+        //    for (int i = 0; i < 100; i++)
+        //    {
+        //        tasks.Add(Task.Run(async () =>
+        //        {
+        //            var session = driver.AsyncSession();
+        //            try
+        //            {
+        //                var userId = random.Next(1, 101); 
+        //                var result = await session.RunAsync($"MATCH (u:User {{UserId: {userId}}}) RETURN u.Name AS Name, u.Email AS Email");
+                                
+        //            }
+        //            finally
+        //            {
+        //                await session.CloseAsync();
+        //            }
+        //        }));
+        //    }
 
-                        
-                        var records = await result.ToListAsync();
+        //    await Task.WhenAll(tasks);
+        //    stopwatch.Stop();
+        //    Console.WriteLine($"Neo4j: Concurrent Query Completed in {stopwatch.ElapsedMilliseconds} ms");
 
-                       
-                        var record = records.SingleOrDefault();
-                        if (record != null)
-                        {
-                            Console.WriteLine($"Query Result: UserId={userId}, Name={record["Name"]}, Email={record["Email"]}");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Query for UserId={userId} returned no results.");
-                        }
-                    }
-                    finally
-                    {
-                        await session.CloseAsync();
-                    }
-                }));
-            }
-
-            await Task.WhenAll(tasks);
-            stopwatch.Stop();
-            Console.WriteLine($"Neo4j: Concurrent Query Completed in {stopwatch.ElapsedMilliseconds} ms");
-
-            await driver.CloseAsync();
-        }
+        //    await driver.CloseAsync();
+        //}
 
     }
 }

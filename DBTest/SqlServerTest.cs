@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using StackExchange.Redis;
+using System.Text.RegularExpressions;
 
 namespace DBTest
 {
@@ -71,7 +73,42 @@ namespace DBTest
             Console.WriteLine($"SQL Server: Single Query - {stopwatch.ElapsedMilliseconds} ms");
         }
 
+        public static async Task ComplexQueryRecordAsync()
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
 
+            var query = @"
+    SELECT
+        c.Name AS CustomerName,
+        SUM(od.Quantity * od.UnitPrice) AS TotalAmount
+    FROM
+        Customers c
+    JOIN
+        Orders o ON c.CustomerId = o.CustomerId
+    JOIN
+        OrderDetails od ON o.OrderId = od.OrderId
+    GROUP BY
+        c.Name
+    ORDER BY
+        TotalAmount DESC";
+
+            
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+         
+            var results = await connection.QueryAsync(query);
+
+            stopwatch.Stop();
+
+            Console.WriteLine($"SQL Server: Query executed in {stopwatch.ElapsedMilliseconds} ms");
+
+       
+            foreach (var record in results)
+            {
+                Console.WriteLine($"CustomerName: {record.CustomerName}, TotalAmount: {record.TotalAmount}");
+            }
+        }
         public static async Task ClearDatabaseAsync()
         {
             using var connection = new SqlConnection(connectionString);
@@ -135,16 +172,7 @@ namespace DBTest
                     var query = "SELECT * FROM Users WHERE UserId = @UserId";
                     var parameters = new { UserId = userId };
 
-                    var result = await connection.QuerySingleOrDefaultAsync(query, parameters);
-
-                    if (result != null)
-                    {
-                        Console.WriteLine($"Query Result: UserId={result.UserId}, Name={result.Name}, Email={result.Email}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Query for UserId={userId} returned no results.");
-                    }
+                    var result = await connection.QuerySingleOrDefaultAsync(query, parameters);                   
                 }));
             }
 
